@@ -1,0 +1,103 @@
+# Sigma-inspired detection rules (simplified YAML DSL for this mini-SIEM).
+# Each rule: id, title, level (maps to triage), conditions (all must match).
+
+rules:
+  - id: WEB_SQLI_UNION
+    title: Possible SQL injection (UNION) in web request
+    level: high
+    conditions:
+      - field: source_type
+        op: eq
+        value: web_server
+      - field: message
+        op: contains
+        value: union select
+
+  - id: WEB_PATH_TRAVERSAL
+    title: Path traversal pattern in URL
+    level: high
+    conditions:
+      - field: source_type
+        op: eq
+        value: web_server
+      - field: message
+        op: regex
+        value: "\\.\\./|\\.\\.\\\\"
+
+  - id: WIN_BRUTE_FORCE
+    title: Repeated Windows logon failures (Event 4625)
+    level: medium
+    conditions:
+      - field: source_type
+        op: eq
+        value: windows_event
+      - field: event_code
+        op: eq
+        value: "4625"
+
+  - id: SYSLOG_SUDO_FAIL
+    title: Privilege escalation failure (sudo/su)
+    level: medium
+    conditions:
+      - field: source_type
+        op: eq
+        value: syslog
+      - field: message
+        op: regex
+        value: "(?i)(failed su|incorrect password|authentication failure)"
+
+  - id: WEB_SHELL_PROBE
+    title: Common webshell / probe path
+    level: medium
+    conditions:
+      - field: source_type
+        op: eq
+        value: web_server
+      - field: url_path
+        op: regex
+        value: "(?i)(/cgi-bin/|/wp-admin/|\\.php\\?|/shell)"
+
+  # Yerel ajan (host_network_agent): gerçek bağlantı satırları — message içinde RPORT=…
+  - id: HOST_TELNET_OUTBOUND
+    title: Outbound telnet (TCP/23) — legacy cleartext
+    level: high
+    conditions:
+      - field: source_type
+        op: eq
+        value: ip_traffic
+      - field: message
+        op: regex
+        value: "(?i)\\bRPORT=23\\b"
+
+  - id: HOST_SUSPICIOUS_REMOTE_PORT
+    title: Outbound connection to unusual high-risk port
+    level: high
+    conditions:
+      - field: source_type
+        op: eq
+        value: ip_traffic
+      - field: message
+        op: regex
+        value: "(?i)\\bRPORT=(4444|5555|6667|1337)\\b"
+
+  - id: HOST_RISK_HINT_ELEVATED
+    title: Host agent flagged elevated risk hint on live connection
+    level: medium
+    conditions:
+      - field: source_type
+        op: eq
+        value: ip_traffic
+      - field: message
+        op: contains
+        value: RISK_HINT=elevated
+
+  - id: HOST_ICMP_PING_OK
+    title: ICMP reachability check (ping) — informational
+    level: low
+    conditions:
+      - field: source_type
+        op: eq
+        value: ip_traffic
+      - field: message
+        op: contains
+        value: PING=1

@@ -1,0 +1,2 @@
+# Sadece tek kurulum .exe üretmek için (PyInstaller)
+pyinstaller>=6.3.0
