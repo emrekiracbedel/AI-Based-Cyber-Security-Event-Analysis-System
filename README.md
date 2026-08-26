@@ -1,23 +1,23 @@
 # Mini-SIEM
 
-Electron masaüstü arayüzü ve FastAPI tabanlı backend: Sigma benzeri kurallar, Isolation Forest anomali, DDoS heuristikleri, isteğe bağlı LLM açıklaması.
+Electron desktop interface and FastAPI-based backend: Sigma-like rules, Isolation Forest anomaly, DDoS heuristics, optional LLM description.
 
 ---
 
-## Gereksinimler
+## Requirements
 
-| Bileşen | Not |
+| Component | Note |
 |--------|-----|
 | **Python 3.11+** | Backend |
-| **Node.js (LTS)** | Masaüstü (`npm`) |
-| **MongoDB** | İsteğe bağlı; `docker compose` veya yerel `27017` |
-| **Windows** | Tam kurulum paketi ve `host_network_agent` için |
+| **Node.js (LTS)** | Desktop (`npm`) |
+| **MongoDB** | Optional; `docker compose` or local `27017` |
+| **Windows** | For full installation package and `host_network_agent` |
 
 ---
 
-## Uygulamayı kod ile çalıştırma (geliştirme)
+## Running the application with code (development)
 
-İki ayrı terminal kullanın. **Kurulu Mini-SIEM Desktop** açıksa kapatın — `8000` portu çakışır.
+Use two separate terminals. Close the **installed Mini-SIEM Desktop** if it's open — port `8000` conflicts.
 
 ### 1) API (backend)
 
@@ -29,11 +29,11 @@ pip install -r requirements.txt -r requirements-build.txt
 uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-Bu pencere açık kalsın. Kontrol: tarayıcıda [http://127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health)
+Keep this window open. Check: in browser [http://127.0.0.1:8000/api/health](http://127.0.0.1:8000/api/health)
 
-### 2) Masaüstü (frontend)
+### 2) Desktop (frontend)
 
-Yeni PowerShell:
+New PowerShell:
 
 ```powershell
 cd mini-siem\desktop
@@ -41,46 +41,45 @@ npm install
 npm run dev
 ```
 
-Electron penceresi açılır; API varsayılan olarak `http://127.0.0.1:8000` adresine bağlanır.
+The Electron window opens; The API connects to `http://127.0.0.1:8000` by default.
 
 ---
 
-## Kurulu uygulama (Inno Setup ile üretilen setup)
+## Installed application (setup generated with Inno Setup)
 
-1. `MiniSIEM-Desktop-Setup-….exe` ile kur.
-2. **Mini-SIEM Desktop** kısayolundan başlat.
-3. Gömülü API arka planda `127.0.0.1:8000` üzerinde kalkar; ayrıca `uvicorn` çalıştırman gerekmez.
+1. Install with `MiniSIEM-Desktop-Setup-….exe`.
+2. Launch from the **Mini-SIEM Desktop** shortcut.
+3. The embedded API runs in the background on `127.0.0.1:8000`; you also don't need to run `uvicorn`.
 
-Yeniden paketlemek için (özet):
+To repackage (summary):
 
 ```powershell
 cd mini-siem\backend
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt -r requirements-build.txt
 deactivate
-
 cd ..\desktop
 npm install
 npm run build:win:full
 ```
 
-Ardından Inno Setup ile `installer\MiniSIEM-Setup.iss` dosyasını derle.
+Then compile the `installer\MiniSIEM-Setup.iss` file with Inno Setup.
 
 ---
 
-## Dashboard neden boş olabilir?
+## Why might the Dashboard be empty?
 
-- Varsayılan olarak **demo simülasyon kapalıdır** (`ENABLE_DEMO_SIMULATION=false`).
-- Sadece tarayıcıda gezmek veriyi **otomatik göndermez**.
-- Veri kaynakları:
-  - **`POST /api/ingest/log`** — ham log satırı
-  - **`POST /api/ingest/flow`** — kaynak/hedef IP akış sayacı
-  - **`backend/scripts/host_network_agent.py`** — bu bilgisayardaki gerçek TCP/UDP bağlantıları (ayrı çalıştırılır)
-  - **`ENABLE_DEMO_SIMULATION=true`** — test için sahte trafik (sadece geliştirme)
+- By default, **demo simulation is disabled** (`ENABLE_DEMO_SIMULATION=false`).
+- Just browsing in the browser does not **automatically send data**.
+- Data sources:
+- **`POST /api/ingest/log`** — raw log line
+- **`POST /api/ingest/flow`** — source/target IP flow counter
+- **`backend/scripts/host_network_agent.py`** — actual TCP/UDP connections on this computer (runs separately)
+- **`ENABLE_DEMO_SIMULATION=true`** — simulated traffic for testing (development only)
 
-### Host ajanı (gerçek bağlantılar)
+### Host agent (actual connections)
 
-API çalışırken ayrı terminal:
+Separate terminal while API is running:
 
 ```powershell
 cd mini-siem\backend
@@ -88,58 +87,58 @@ cd mini-siem\backend
 python scripts/host_network_agent.py --api http://127.0.0.1:8000 --interval 2 --ping-every 30
 ```
 
-Yönetici PowerShell, diğer kullanıcı süreçlerine ait soketleri görmeyi kolaylaştırır.
+Administrator PowerShell makes it easy to see sockets belonging to other user processes.
 
 ---
 
 ## MongoDB
 
-Proje kökünde:
+In the project root:
 
 ```powershell
 cd mini-siem
 docker compose up -d
 ```
 
-Varsayılan URI: `mongodb://127.0.0.1:27017`. Mongo kapalıyken API çalışır; kalıcı log/uyarı ve açılışta **hydrate** sınırlı kalır.
+Default URI: `mongodb://127.0.0.1:27017`. API runs even when Mongo is down; persistent log/warning and **hydrate** on startup are limited.
 
 ---
 
 ## LLM (OpenAI / Gemini)
 
-- **Masaüstünde:** **API keys → Manage** ile anahtarlar `localStorage`’da tutulur; isteklerde `X-MiniSiem-Llm-OpenAI` / `X-MiniSiem-Llm-Gemini` başlıklarıyla gider.
-- **Sunucuda:** `OPENAI_API_KEY`, `GEMINI_API_KEY`, isteğe bağlı `LLM_PROVIDER=gemini`.
+- **On the desktop:** API keys → Manage** keys are stored in `localStorage`; requests are sent with the headers `X-MiniSiem-Llm-OpenAI` / `X-MiniSiem-Llm-Gemini`.
+- **On the server:** `OPENAI_API_KEY`, `GEMINI_API_KEY`, optional `LLM_PROVIDER=gemini`.
 
-**Önemli:** Tarayıcıda doğrudan açtığın `http://127.0.0.1:8000/api/health` isteğinde bu başlıklar **yoktur**; bu yüzden `llm_configured: false` görmen normal olabilir. Uygulama içindeki sağlık satırı ve LLM açıklamaları başlıklarla tutarlıdır.
+**Important:** The `http://127.0.0.1:8000/api/health` request you open directly in your browser **doesn't exist**; therefore, seeing `llm_configured: false` might be normal. The health line and LLM descriptions within the application are consistent with the headers.
 
 ---
 
-## Ortam değişkenleri (seçmeli)
+## Environment variables (optional)
 
-| Değişken | Açıklama |
+| Variable | Description |
 |----------|-----------|
-| `ENABLE_DEMO_SIMULATION` | `true` / `false` (varsayılan: kapalı) |
-| `MONGODB_URI` | Örn. `mongodb://127.0.0.1:27017` |
-| `MONGODB_DB` | Varsayılan: `mini_siem` |
-| `OPENAI_API_KEY` / `GEMINI_API_KEY` | Sunucu tarafı LLM |
-| `LLM_PROVIDER` | `openai` veya `gemini` |
-| `GEMINI_MODEL` / `LLM_MODEL` | Model adları |
+| `ENABLE_DEMO_SIMULATION` | `true` / `false` (default: off) |
+| `MONGODB_URI` | E.g. `mongodb://127.0.0.1:27017` |
+| `MONGODB_DB` | Default: `mini_siem` |
+| `OPENAI_API_KEY` / `GEMINI_API_KEY` | Server-side LLM |
+| `LLM_PROVIDER` | `openai` or `gemini` |
+| `GEMINI_MODEL` / `LLM_MODEL` | Model names |
 
 ---
 
-## Sorun giderme
+## Troubleshooting
 
-| Sorun | Çözüm |
+| Problem | Solution |
 |-------|--------|
-| `WinError 10048` / port 8000 | Kurulu uygulamayı kapat veya `uvicorn` kullanma; ya da çakışan süreci kapat. |
-| `netstat -ano \| findstr :8000` | Portu kim kullanıyor görmek için. |
-| PowerShell script çalışmıyor | `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
+| `WinError 10048` / port 8000 | Close the installed application or don't use `uvicorn`; or close the conflicting process. |
+| `netstat -ano \| findstr :8000` | To see who is using the port. |
+| PowerShell script not working | `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` |
 
 ---
 
-## Klasör yapısı (özet)
+## Folder structure (summary)
 
-- `backend/` — FastAPI uygulaması (`app.main:app`)
+- `backend/` — FastAPI application (`app.main:app`)
 - `desktop/` — Electron + Vite + React
-- `installer/` — Inno Setup betiği
+- `installer/` — Inno Setup script
 - `docker-compose.yml` — MongoDB
